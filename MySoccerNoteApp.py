@@ -1297,3 +1297,17 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
+
+# デプロイ時の初期化専用エンドポイント（注意: 実行後は必ず削除または保護してください）
+@app.route('/initialize-db')
+def initialize_database():
+    if os.environ.get('RENDER') != 'true':
+        # RENDER環境変数がない場合はセキュリティのため拒否
+        return "Not authorized outside of Render environment.", 403
+    
+    try:
+        db.create_all()
+        # 初期の管理者ユーザーや必須データをここで作成することも可能
+        return "Database tables created successfully!", 200
+    except Exception as e:
+        return f"Database initialization failed: {str(e)}", 500
