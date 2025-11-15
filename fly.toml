@@ -9,7 +9,7 @@ kill_signal = 'SIGINT'
 kill_timeout = '5s'
 
 [build]
-  builder = builder = "heroku/buildpacks:22"
+  builder = "gcr.io/buildpacks/heroku-python"
 
 [env]
   PORT = '8080'
