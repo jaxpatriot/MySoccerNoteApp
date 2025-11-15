@@ -23,3 +23,6 @@ kill_timeout = '5s'
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
+
+[deploy]
+  release_command = "python -c 'from MySoccerNoteApp import db, app; with app.app_context(): db.create_all()'"
