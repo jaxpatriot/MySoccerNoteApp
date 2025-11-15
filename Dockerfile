@@ -23,4 +23,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV PORT 8080
 
 # アプリケーションの起動コマンド
-CMD gunicorn MySoccerNoteApp:app -b 0.0.0.0:8080
+CMD python -c "from MySoccerNoteApp import db, app; with app.app_context(): db.create_all();" && gunicorn MySoccerNoteApp:app -b 0.0.0.0:8080
