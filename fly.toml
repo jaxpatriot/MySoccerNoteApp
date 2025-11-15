@@ -14,10 +14,10 @@ kill_timeout = '5s'
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = false   # 💡 停止させない
   auto_start_machines = true
-  min_machines_running = 0
-  processes = ['app']
+  min_machines_running = 1     # 💡 常に 1台起動させておく
+  processes = ["app"]
 
 [[vm]]
   memory = '1gb'
