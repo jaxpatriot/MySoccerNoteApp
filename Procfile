@@ -1,1 +1,1 @@
-web: gunicorn MySoccerNoteApp:app
+gunicorn MySoccerNoteApp:app -b 0.0.0.0:8080
