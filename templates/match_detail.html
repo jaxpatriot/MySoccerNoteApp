@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}{{ match.opponent }}戦 詳細{% endblock %}
+
+{% block head %}
+<style>
+/* --------------------------------------------------
+ * match_detail.html: モバイル表示の調整
+ * -------------------------------------------------- */
+@media (max-width: 576px) {
+    /* コンテナの左右のパディングを減らす */
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    /* 戦術・配置の管理セクションのリスト調整 */
+    .list-group-item.d-flex {
+        /* テキストとボタンの間にスペースを確保 */
+        flex-direction: column; 
+        align-items: flex-start;
+    }
+    
+    /* ロードと削除のボタンをグループ化し、幅いっぱいに */
+    .layout-actions {
+        width: 100%;
+        margin-top: 5px; 
+        display: flex;
+        gap: 5px;
+    }
+    
+    .layout-actions .btn-sm {
+        flex-grow: 1; /* ロードボタンと削除ボタンを幅いっぱいに */
+    }
+
+    /* h1のフォントサイズを調整 */
+    h1.mb-4 {
+        font-size: 1.5rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12 col-lg-8"> 
+            <h1 class="mb-4">⚽ {{ match.opponent }}戦 詳細</h1>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5>試合概要</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>対戦相手:</strong> {{ match.opponent }}</p>
+                    <p><strong>日付:</strong> {{ match.date.strftime('%Y年%m月%d日') }}</p>
+                    <p><strong>試合時間:</strong> {{ match.duration_minutes | default(90) }}分</p>
+                    <p><strong>スコア:</strong> <span class="badge bg-success">{{ match.own_score }}</span> - <span class="badge bg-danger">{{ match.opponent_score }}</span></p>
+                    <p><strong>結果メモ:</strong> {{ match.result }}</p>
+                    <p><strong>備考:</strong> {{ match.notes if match.notes else 'なし' }}</p>
+                    <a href="{{ url_for('match_lineup_create', match_id=match.id) }}" class="btn btn-sm btn-outline-primary">ラインナップ編集</a>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5>戦術・配置の管理</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('tactics_board', match_id=match.id) }}" class="btn btn-warning mb-3">
+                        <i class="fas fa-chalkboard-teacher"></i> **この試合の戦術ボードを開く**
+                    </a>
+
+                    {% if layouts %}
+                    <h6 class="mt-3">この試合に紐づいた配置 ({{ layouts|length }} 件):</h6>
+                    <ul class="list-group">
+                        {% for layout in layouts %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>{{ layout.layout_name }} ({{ layout.timestamp.strftime('%Y/%m/%d %H:%M') }})</div>
+                            
+                            {# 💡 修正点: ロードボタンと削除ボタンをグループ化 #}
+                            <div class="layout-actions btn-group-sm">
+                                <a href="{{ url_for('tactics_board', match_id=match.id) }}?load_id={{ layout.id }}" class="btn btn-sm btn-outline-secondary">ロード</a>
+                                
+                                {# 💡 修正点: 配置削除ボタンを追加 #}
+                                <form method="POST" action="{{ url_for('delete_layout', layout_id=layout.id, match_id=match.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('この配置を削除しますか？');">削除</button>
+                                </form>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">まだこの試合に紐づいた配置はありません。</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>ラインナップ</h5>
+                </div>
+                <div class="card-body">
+                    <h6>スタメン:</h6>
+                    <p>{{ starters|map(attribute='name')|join(', ') }}</p>
+                    <h6>サブ:</h6>
+                    <p>{{ subs|map(attribute='name')|join(', ') }}</p>
+                </div>
+            </div>
+            
+            {% if goals %}
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5>試合イベント (得点/失点)</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for goal in goals %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                {% if goal.team == 'OWN' %}
+                                    <span class="badge bg-success me-2">GOAL</span> 
+                                    <strong>{{ goal.time_minute }}分 ({{ goal.time_period }})</strong>: 
+                                    {{ goal.scorer.number | default('-') }}番 {{ goal.scorer.name }} 
+                                    {% if goal.assist %}
+                                        <small>(A: {{ goal.assist.number | default('-') }}番 {{ goal.assist.name }})</small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-danger me-2">失点</span> 
+                                    <strong>{{ goal.time_minute }}分 ({{ goal.time_period }})</strong>: 相手チーム
+                                {% endif %}
+                            </div>
+                            <form method="POST" action="{{ url_for('delete_goal', goal_id=goal.id, match_id=match.id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('このイベントを削除しますか？');">削除</button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+        
+        <div class="col-12 col-lg-4"> 
+            <div class="card shadow-sm p-4 mb-4 bg-light">
+                <h3 class="h5 border-bottom pb-2 mb-3">得点・失点の記録 🎯</h3>
+
+                <form method="POST" action="{{ url_for('record_goal', match_id=match.id) }}">
+
+                    <div class="mb-3">
+                        <label for="team" class="form-label">イベントの種類</label>
+                        <select class="form-select" id="team" name="team" required>
+                            <option value="" disabled selected>選択してください</option>
+                            <option value="OWN">✅ 自チーム得点 (Goal For)</option>
+                            <option value="OPPONENT">❌ 相手チーム得点 (Goal Against)</option>
+                        </select>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label for="time_period" class="form-label">時間帯</label>
+                            <select class="form-select" id="time_period" name="time_period" required>
+                                <option value="1H">前半 (1H)</option>
+                                <option value="1HAT">前半アディショナルタイム (1HAT)</option>
+                                <option value="2H" selected>後半 (2H)</option>
+                                <option value="2HAT">後半アディショナルタイム (2HAT)</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label for="time_minute" class="form-label">時間 (分)</label>
+                            <input type="number" class="form-control" id="time_minute" name="time_minute" required min="1" value="46"> 
+                        </div>
+                    </div>
+
+                    <div id="own_goal_fields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="scorer_id" class="form-label">得点者 (Scorer)</label>
+                            <select class="form-select" id="scorer_id" name="scorer_id">
+                                <option value="None" selected>-- 得点者なし (オウンゴールなど) --</option>
+                                {% for member in all_members %}
+                                    <option value="{{ member.id }}">{{ member.number | default('-') }}番 {{ member.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="assist_id" class="form-label">アシスト (Assist)</label>
+                            <select class="form-select" id="assist_id" name="assist_id">
+                                <option value="None" selected>-- アシストなし --</option>
+                                {% for member in all_members %}
+                                    <option value="{{ member.id }}">{{ member.number | default('-') }}番 {{ member.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success w-100 fw-bold mt-3">イベントを記録</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% if not match.is_finished %}
+<div class="mb-3 text-center">
+    <form method="POST" action="{{ url_for('finish_match', match_id=match.id) }}" 
+          onsubmit="return confirm('試合を終了済みにしてもよろしいですか？この操作は元に戻せません。');">
+        
+        <button type="submit" class="btn btn-warning btn-lg">
+            <i class="fas fa-flag-checkered"></i> 試合を終了する
+        </button>
+    </form>
+</div>
+{% else %}
+<div class="alert alert-success text-center">
+    この試合は**終了済み**です。
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const teamSelect = document.getElementById('team');
+        const ownGoalFields = document.getElementById('own_goal_fields');
+        const timeMinuteInput = document.getElementById('time_minute');
+        const timePeriodSelect = document.getElementById('time_period');
+        
+        // 試合時間をPythonから取得
+        const fullTime = {{ match.duration_minutes | default(90) }};
+        const halfTime = fullTime / 2; 
+
+        function toggleGoalFields() {
+            if (teamSelect.value === 'OWN') {
+                ownGoalFields.style.display = 'block';
+            } else {
+                ownGoalFields.style.display = 'none';
+            }
+        }
+        
+        // 時間帯に応じた分数の最大値/最小値を設定
+        function updateMaxMinute() {
+            const period = timePeriodSelect.value;
+            let maxMin;
+            let minMin = 1;
+
+            if (period === '1H') {
+                maxMin = halfTime; 
+            } else if (period === '1HAT') {
+                minMin = halfTime + 1; 
+                maxMin = null; 
+            } else if (period === '2H') {
+                minMin = halfTime + 1; 
+                maxMin = fullTime;
+            } else if (period === '2HAT') {
+                minMin = fullTime + 1; 
+                maxMin = null; 
+            }
+            
+            // 入力フィールドの属性を更新
+            if (maxMin === null) {
+                timeMinuteInput.removeAttribute('max'); 
+            } else {
+                timeMinuteInput.setAttribute('max', maxMin);
+            }
+            timeMinuteInput.setAttribute('min', minMin);
+            
+            // 選択した時間帯の開始時間（minMin）に入力値をセット
+            const currentMinute = parseInt(timeMinuteInput.value);
+            if(currentMinute < minMin || (maxMin !== null && currentMinute > maxMin)) {
+                 timeMinuteInput.value = minMin;
+            }
+        }
+
+        teamSelect.addEventListener('change', toggleGoalFields);
+        timePeriodSelect.addEventListener('change', updateMaxMinute);
+        
+        // 初期状態を設定
+        toggleGoalFields();
+        updateMaxMinute();
+    });
+</script>
+{% endblock %}

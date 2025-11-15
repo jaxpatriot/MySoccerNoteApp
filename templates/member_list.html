@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block head -%}
+<style>
+/* --------------------------------------------------
+ * member_list.html: モバイル表示の調整
+ * -------------------------------------------------- */
+
+@media (max-width: 768px) {
+    .container { padding-left: 10px; padding-right: 10px; }
+    h1.mb-4 { font-size: 1.5rem; }
+    .list-group-item.d-flex { flex-direction: column; align-items: flex-start !important; }
+    .list-group-item div:first-child { margin-bottom: 8px; width: 100%; white-space: normal; }
+    .list-group-item .btn-group { width: 100%; display: flex; }
+    .list-group-item .btn-group > * { flex: 1; }
+    .col-md-4 .card { margin-bottom: 20px !important; }
+}
+.delete-form { display: contents; }
+</style>
+{%- endblock %}
+
+{% block content -%}
+<div class="container mt-4">
+    <h1 class="mb-4">👤 メンバーリスト</h1>
+    <div class="row">
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm p-3 mb-4">
+                <h3 class="h5 border-bottom pb-2 mb-3">メンバー追加</h3>
+                
+                <form id="member_form" method="POST" action="{{ url_for('member_list') }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">選手名 *</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="number" class="form-label">背番号</label>
+                        <input type="text" class="form-control" id="number" name="number">
+                    </div>
+                    <div class="mb-3">
+                        <label for="position" class="form-label">ポジション</label>
+                        <input type="text" class="form-control" id="position" name="position" placeholder="例: FW, MF, CB">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">登録</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <h3 class="h5 border-bottom pb-2 mb-3">登録メンバー ({{ members | length }}名)</h3>
+            {% if members %}
+                <ul class="list-group">
+                    {% for member in members | sort(attribute='number') %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="me-2">{{ member.number | default('-') }}</strong>
+                                {{ member.name }} 
+                                <span class="badge bg-secondary ms-2">{{ member.position | default('未設定') }}</span>
+                            </div>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('member_edit', member_id=member.id) }}" class="btn btn-sm btn-outline-info">編集</a>
+                                
+                                <form method="POST" action="{{ url_for('member_delete', member_id=member.id) }}" class="delete-form"
+                                      onsubmit="return confirm('本当にメンバー「{{ member.name }}」を削除しますか？\n関連する試合記録も影響を受ける可能性があります。');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">削除</button>
+                                </form>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    まだメンバーが登録されていません。
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{%- endblock %}

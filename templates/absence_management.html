@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">🗓️ 欠席管理</h1>
+
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">練習ID: {{ practice_id }} の出欠登録</h4>
+        </div>
+        <div class="card-body">
+
+            <p class="lead text-muted">メンバーリストから出欠を選択し、「保存」を押してください。</p>
+
+            <form action="{{ url_for('absence_management', practice_id=practice_id) }}" method="POST">
+                
+                <table class="table table-striped table-hover align-middle">
+    <thead>
+        <tr>
+            <th>メンバー名</th>
+            <th class="text-center" style="width: 100px;">欠席回数</th> 
+            <th class="text-center" style="width: 200px;">出欠状況</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for member in members %}
+        <tr>
+            <td>{{ member.name }}</td>
+            <td class="text-center">
+                <strong>{{ member.absence_count }}</strong>
+            </td>
+            <td class="text-center">
+                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="status_{{ member.id }}" id="present_{{ member.id }}" value="present" {% if member.status == 'present' %}checked{% endif %}>
+                                    <label class="btn {% if member.status == 'present' %}btn-success{% else %}btn-outline-success{% endif %}" for="present_{{ member.id }}">〇 出席</label>
+                                    
+                                    <input type="radio" class="btn-check" name="status_{{ member.id }}" id="absent_{{ member.id }}" value="absent" {% if member.status == 'absent' %}checked{% endif %}>
+                                    <label class="btn {% if member.status == 'absent' %}btn-danger{% else %}btn-outline-danger{% endif %}" for="absent_{{ member.id }}">× 欠席</label>
+                                </div>
+                                <input type="hidden" name="member_ids" value="{{ member.id }}">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{{ url_for('practice_calendar') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-chevron-left me-1"></i> カレンダーに戻る
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-2"></i> 出欠情報を保存
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

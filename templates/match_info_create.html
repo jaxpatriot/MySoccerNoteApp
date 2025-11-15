@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+<style>
+/* --------------------------------------------------
+ * match_info_create.html: モバイル表示の調整
+ * -------------------------------------------------- */
+
+@media (max-width: 576px) {
+    /* コンテナの左右のパディングを減らし、画面幅を最大限に利用 */
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    /* フォームのフッター部分のボタンを縦に積み重ね、幅を100%にする */
+    form button[type="submit"], 
+    form a.btn-secondary {
+        width: 100%; /* ボタンを画面幅いっぱいに広げる */
+        margin-bottom: 10px; /* ボタン間にスペースを追加 */
+        /* d-gridクラスなどを使用していないため、個別にスタイルを設定します */
+    }
+
+    /* h1のフォントサイズを調整 */
+    h1.mb-4 {
+        font-size: 1.5rem;
+    }
+}
+</style>
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">⚽ 新しい試合の記録 - ステップ 1/2 (基本情報)</h1>
+    <form method="POST">
+        
+        <div class="mb-3">
+            <label for="opponent" class="form-label">対戦相手</label>
+            <input type="text" class="form-control" id="opponent" name="opponent" required>
+        </div>
+        <div class="mb-3">
+            <label for="date" class="form-label">日付</label>
+            <input type="date" class="form-control" id="date" name="date" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="match_duration" class="form-label fw-bold">試合時間 (分)</label>
+            <input type="number" class="form-control" id="match_duration" name="match_duration" value="90" required min="1">
+            <small class="form-text text-muted">
+                この試合の標準的な試合時間（例: 90分, 70分, 60分など）を入力してください。
+            </small>
+        </div>
+        
+        <div class="mb-3">
+            <label for="result" class="form-label">結果（例：リーグ戦、親善試合など - スコアは不要）</label>
+            <input type="text" class="form-control" id="result" name="result">
+        </div>
+        <div class="mb-3">
+            <label for="notes" class="form-label">備考 / 試合概要</label>
+            <textarea class="form-control" id="notes" name="notes" rows="5"></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary fw-bold">基本情報を保存してラインナップ登録へ</button>
+        <a href="{{ url_for('match_list') }}" class="btn btn-secondary">一覧に戻る</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        // 今日付が未設定の場合、自動でセット
+        const dateInput = document.getElementById('date');
+        if (!dateInput.value) {
+            const today = new Date().toISOString().slice(0, 10);
+            dateInput.value = today;
+        }
+    });
+</script>
+{% endblock %}

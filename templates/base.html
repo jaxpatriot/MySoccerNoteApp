@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - MySoccerNote</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
+    
+    {% block head %}{% endblock %}
+    
+    <style>
+    #ad-space-global {
+    /* 広告エリアを常に画面上部に固定して追従させる */
+    position: sticky;
+    top: 20px; /* 画面上部からの距離 */
+    z-index: 10; 
+    }
+        /* ヘッダーの高さに合わせてパディングを 50px に調整 */
+        body { padding-top: 50px; }
+        .page-title { margin-top: 20px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm py-1">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">⚽ MySoccerNote</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('practice_calendar') }}">
+                                <i class="fas fa-clock me-1"></i> 練習カレンダー
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('match_list') }}">
+                                <i class="fas fa-futbol me-1"></i> 試合記録
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('tactics_board') }}">
+                                <i class="fas fa-chess-board me-1"></i> 戦術ボード
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('member_list') }}">
+                                <i class="fas fa-clipboard-check me-1"></i> メンバー登録
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('absence_summary') }}">
+                                <i class="fas fa-calendar-times me-1"></i> 欠席集計
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('analysis_overview') }}">
+                                <i class="fas fa-chart-bar me-1"></i> 総合分析
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <span class="nav-link text-info">ようこそ, {{ current_user.username }}</span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-sm btn-outline-danger ms-2" href="{{ url_for('logout') }}">ログアウト</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('register') }}">登録</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-sm btn-outline-success ms-2" href="{{ url_for('login') }}">ログイン</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container-fluid mt-3">
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            
+            {% if request.path == url_for('index') %}
+                <div class="col-12">
+            {% else %}
+                <div class="col-md-9">
+            {% endif %}
+
+            {% block content %}
+            {% endblock %}
+
+            </div> {% if request.path != url_for('index') %}
+                <div class="col-md-3 d-none d-md-block">
+                    <div id="ad-space-global" class="border p-2 bg-light text-center">
+                        <h4>広告表示エリア</h4>
+                        <p>ここに将来的に広告コードを配置します。</p>
+                        <div style="height: 300px; background-color: #e0e0e0; margin-top: 10px;">
+                            
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales-all.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

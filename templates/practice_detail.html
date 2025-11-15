@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+<style>
+/* --------------------------------------------------
+ * practice_detail.html: モバイル表示の調整
+ * -------------------------------------------------- */
+
+@media (max-width: 576px) {
+    /* コンテナの左右のパディングを減らす */
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    /* フッターのボタンを縦に積み重ねる */
+    .card-footer.d-flex {
+        flex-direction: column; /* 縦方向に並べる */
+        gap: 8px; /* ボタン間にスペースを追加 */
+    }
+
+    /* フッター内の要素（ボタンとフォーム）の幅を100%にする */
+    .card-footer a, .card-footer form {
+        width: 100%;
+        margin-bottom: 0 !important; /* gapでスペースを管理するため削除 */
+    }
+
+    /* 削除ボタンのフォーム内のボタンの幅も100%にする */
+    .card-footer form button {
+        width: 100%;
+    }
+}
+</style>
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">📋 練習日誌詳細</h1>
+
+    {% if practice %}
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">{{ practice.title }}</h4>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <strong>日付・時刻:</strong> {{ practice.date.strftime('%Y年%m月%d日 %H:%M') }}
+                </div>
+                <div class="col-md-6">
+                    <strong>場所:</strong> {{ practice.location if practice.location else '未設定' }}
+                </div>
+            </div>
+            
+            <hr>
+
+            <h5>練習メニュー</h5>
+            <div class="card p-3 mb-3 bg-light">
+                {% if practice.menu %}
+                <pre style="white-space: pre-wrap; margin: 0; font-family: inherit;">{{ practice.menu }}</pre>
+                {% else %}
+                <p class="text-muted mb-0">メニューの記録はありません。</p>
+                {% endif %}
+            </div>
+
+            <h5>特記事項・反省点</h5>
+            <div class="card p-3 bg-light">
+                {% if practice.notes %}
+                <pre style="white-space: pre-wrap; margin: 0; font-family: inherit;">{{ practice.notes }}</pre>
+                {% else %}
+                <p class="text-muted mb-0">特記事項・反省点の記録はありません。</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card-footer d-flex justify-content-start gap-2">
+            
+            <a href="{{ url_for('practice_calendar') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-chevron-left me-1"></i> カレンダーに戻る
+            </a>
+            
+            <a href="{{ url_for('absence_management', practice_id=practice.id) }}" class="btn btn-warning">
+                <i class="fas fa-user-slash me-1"></i> 欠席管理
+            </a>
+            
+            <a href="{{ url_for('practice_detail', practice_id=practice.id) }}" class="btn btn-primary ms-auto">編集</a>
+
+            <form action="{{ url_for('practice_delete', practice_id=practice.id) }}" method="POST" onsubmit="return confirm('本当にこの練習記録を削除してもよろしいですか？');">
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash-alt me-1"></i> 削除
+                </button>
+            </form>
+        </div>
+        </div>
+    {% else %}
+    <div class="alert alert-danger">指定された練習記録は見つかりませんでした。</div>
+    {% endif %}
+</div>
+{% endblock %}

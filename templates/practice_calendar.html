@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}練習計画・日誌カレンダー{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core/locales/ja.global.min.js"></script>
+    
+    <style>
+        /* カレンダーの表示幅調整 */
+        #calendar {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        #mobile-tap-tip {
+        display: none; /* デフォルトで非表示 */
+        font-weight: bold;
+        }
+
+        /* モバイル表示でのカレンダーの調整 */
+        @media (max-width: 768px) {
+            #calendar {
+                padding: 5px;
+            }
+            #mobile-tap-tip {
+            display: block !important; /* モバイルでのみ表示を強制 */
+            }}
+        
+        /* FullCalendarの日付セル内の日付番号がタップしやすくなるように調整 */
+        .fc-daygrid-day-number {
+            display: inline-block;
+            padding: 5px; 
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        /* 日付セル全体をタップ可能にするためのCSS */
+        .fc-daygrid-day-frame {
+            height: 100%;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">🗓️ 練習計画・日誌</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div id='calendar'></div>
+        </div>
+    </div>
+        <div id="mobile-tap-tip" class="alert alert-info text-center mt-3 d-none d-md-block">
+        日付を**ダブルクリック**または**長押し**すると詳細が入力できます。
+        </div>
+</div>
+
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventModalLabel">予定/記録の追加・編集</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>このモーダルに、日付ごとの練習計画や日誌の入力フォームを配置します。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        
+        let lastClickTime = 0;
+        const DOUBLE_CLICK_TIME_THRESHOLD = 300; // ms
+
+        // FullCalendarの初期設定
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            // 基本設定
+            initialView: 'dayGridMonth', 
+            locale: 'ja', 
+            headerToolbar: { 
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            editable: true, 
+            selectable: true, 
+            
+            // サーバーからイベント（練習予定や記録）を取得するエンドポイント
+            events: '/api/practices', 
+
+            // 💡 PC対応: dateClickでダブルクリックを判定し、新規作成画面へ遷移
+            dateClick: function(info) {
+                const currentTime = new Date().getTime();
+                
+                // 画面幅が広い（PC）の場合にダブルクリック判定を行う
+                if (window.innerWidth > 768) {
+                    if (currentTime - lastClickTime < DOUBLE_CLICK_TIME_THRESHOLD) {
+                        // ダブルクリックと判定
+                        const selectedDate = info.dateStr.split('T')[0];
+                        const detailUrl = `{{ url_for('practice_create') }}?date=${selectedDate}`;
+                        window.location.href = detailUrl;
+                    }
+                    lastClickTime = currentTime;
+                }
+                
+                // モバイルの場合は select イベントに任せるため、ここでは何もしない
+            },
+
+            // 💡 スマホ対応: select（タップ/クリック）で予定作成画面へ遷移
+            // selectイベントは、モバイル環境でのタップ、およびマウスでの範囲選択時に発火
+            select: function(info) {
+                // 画面幅が狭い（モバイル）の場合のみ、select イベントを有効にする
+                if (window.innerWidth <= 768) {
+                    const selectedDate = info.startStr.split('T')[0]; 
+                    const detailUrl = `{{ url_for('practice_create') }}?date=${selectedDate}`;
+                    
+                    window.location.href = detailUrl;
+
+                    // 選択範囲を解除
+                    calendar.unselect(); 
+                } 
+                // PCでのマウスによる範囲選択時は select が発火するが、
+                // モバイル判定でガードしているため、PCでは単なるクリックでは遷移しない
+            },
+            
+            // イベントがクリックされた時の動作（既存の練習の編集ページへの遷移）
+            eventClick: function(info) {
+                const eventId = info.event.id;
+                const editUrl = `{{ url_for('practice_detail', practice_id=0) }}`.replace('0', eventId);
+                window.location.href = editUrl;
+            },
+            
+            // イベントがドラッグで移動された時の動作 (DB更新が必要)
+            eventDrop: function(info) {
+                if (!confirm(`「${info.event.title}」を ${info.event.start.toLocaleDateString()} に移動しますか？`)) {
+                    info.revert(); 
+                }
+            }
+        });
+
+        calendar.render();
+    });
+</script>
+{% endblock %}

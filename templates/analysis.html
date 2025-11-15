@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<style>
+/* --------------------------------------------------
+ * analysis.html: モバイル表示の調整
+ * -------------------------------------------------- */
+
+/* --------------------------------------------------
+ * 試合結果サマリー: 数字とラベルの垂直方向の位置調整 (全サイズ) 🚨修正/追加箇所 🚨
+ * -------------------------------------------------- */
+.card-body .row .col-md-2 {
+    /* 項目内のコンテンツを縦に揃えるためのFlexbox設定 */
+    display: flex;
+    flex-direction: column; /* 要素を縦に並べる */
+    align-items: center; /* 水平方向（テキスト）の中央揃え */
+    justify-content: center; /* 垂直方向の中央揃え */
+}
+
+/* ラベル (h5) の高さ固定と中央揃え */
+.card-body h5 {
+    /* 2行分の高さを確保するために、高さを固定 (例: 30px) */
+    height: 30px; 
+    
+    /* Flexboxで垂直方向中央揃えを強制 */
+    display: flex;
+    justify-content: center; /* 水平方向中央 */
+    align-items: center; /* 垂直方向中央 */
+    
+    /* デフォルトのh5マージンを上書き */
+    margin-bottom: 0.2rem !important; 
+    margin-top: 0 !important;
+    line-height: 1.2;
+}
+
+/* 数字 (h2) のマージン調整を再確認 */
+.card-body h2.display-4 {
+    /* デフォルトのh2マージンを上書き */
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    line-height: 1; /* 行の高さを詰めて数字の位置を安定させる */
+}
+
+
+@media (max-width: 768px) {
+    /* コンテナの左右のパディングを減らす */
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    /* 試合結果サマリーの修正 (6つの項目を縦長に積み重ねないようにする) */
+    .card-body .row.text-center {
+        display: flex;
+        flex-wrap: wrap; /* 折り返しを有効にする */
+        justify-content: space-around; /* 均等配置 */
+    }
+
+    /* 勝利数〜得失点差の各項目 (col-md-2) をモバイルで2列または3列にする */
+    .card-body .col-md-2 {
+        /* 画面幅に応じて3列表示にする (約33%) */
+        width: 33.33%; 
+        padding: 10px 5px; /* 上下のパディングを増やし、左右を減らす */
+        border: none !important; /* 横の区切り線をモバイルでは消す */
+        border-bottom: 1px solid #eee !important; /* 下に区切り線を追加 */
+        
+        /* 左右の区切り線もモバイルでは非表示に */
+        border-right: none !important;
+    }
+    
+    /* 最終行の要素の下線を非表示にする調整 (3列表示の場合) */
+    .card-body .col-md-2:nth-last-child(1),
+    .card-body .col-md-2:nth-last-child(2),
+    .card-body .col-md-2:nth-last-child(3) {
+        /* 最後の3つの要素（つまり最終行全体）の下線を削除 */
+        border-bottom: none !important;
+    }
+
+    /* 数字とタイトルのフォントサイズをモバイル向けに調整 */
+    .card-body h2.display-4 {
+        font-size: 1.8rem;
+    }
+    .card-body h5 {
+        font-size: 0.8rem;
+        /* モバイルでは高さ固定を解除するか、適切な高さを設定 */
+        height: auto; 
+    }
+
+    /* ランキングテーブルの調整 */
+    .table-striped th, .table-striped td {
+        padding: 8px 5px; /* セルのパディングを減らす */
+        font-size: 0.85rem; /* フォントを小さくする */
+    }
+    
+    /* 🚀 グラフコンテナの高さ調整をさらに大きく (縦に伸ばす) */
+    .chart-container {
+        position: relative;
+        /* 高さを 450px に設定し、グラフを大きく表示 */
+        height: 450px !important; 
+        width: 100% !important; /* 全幅指定 */
+    }
+    
+    /* h1のフォントサイズを調整 */
+    h1.mb-4 {
+        font-size: 1.5rem;
+    }
+    
+    /* ランキングテーブルの親要素を全幅にする */
+    .row.mt-4 .col-lg-5 {
+        width: 100%;
+        max-width: 100%;
+        flex: 0 0 100%;
+    }
+    /* グラフの親要素を全幅にする */
+    .row.mt-4 .col-lg-7 {
+        width: 100%;
+        max-width: 100%;
+        flex: 0 0 100%;
+    }
+}
+
+@media (max-width: 400px) {
+    /* さらに画面が狭い場合は2列にする */
+    .card-body .col-md-2 {
+        width: 50%;
+    }
+    /* 2列表示の場合、最後の2つの要素（最終行）の下線を削除 */
+    .card-body .col-md-2 {
+        border-bottom: 1px solid #eee !important;
+    }
+    .card-body .col-md-2:nth-last-child(1),
+    .card-body .col-md-2:nth-last-child(2) {
+        border-bottom: none !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4" role="main">
+    <h1 class="mb-4">⚽ {{ title }} (全試合集計)</h1>
+
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">試合結果サマリー ({{ total_matches_count }} 試合)</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center align-items-center">
+                        <div class="col-md-2 border-end">
+                            <h5 class="text-success">勝利数</h5>
+                            <h2 class="display-4 fw-bold">{{ total_stats.wins }}</h2>
+                        </div>
+                        <div class="col-md-2 border-end">
+                            <h5 class="text-danger">敗北数</h5>
+                            <h2 class="display-4 fw-bold">{{ total_stats.losses }}</h2>
+                        </div>
+                        <div class="col-md-2 border-end">
+                            <h5 class="text-secondary">引き分け数</h5>
+                            <h2 class="display-4 fw-bold">{{ total_stats.draws }}</h2>
+                        </div>
+                        <div class="col-md-2 border-end">
+                            <h5>得点合計</h5>
+                            <h2 class="display-4 fw-bold text-primary">{{ total_stats.goals_for }}</h2>
+                        </div>
+                        <div class="col-md-2 border-end">
+                            <h5>失点合計</h5>
+                            <h2 class="display-4 fw-bold text-secondary">{{ total_stats.goals_against }}</h2>
+                        </div>
+                        <div class="col-md-2">
+                            <h5>得失点差</h5>
+                            {% set diff_color = 'text-success' if total_stats.goal_difference >= 0 else 'text-danger' %}
+                            <h2 class="display-4 fw-bold {{ diff_color }}">{{ total_stats.goal_difference }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <p class="lead text-muted">現在、登録されているすべての試合のゴール記録を総合的に分析しています。</p>
+
+    <div class="row mt-4">
+        
+        <div class="col-lg-5 col-md-12"> 
+    
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">得点王ランキング (累計)</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if total_goals_ranking %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">選手名</th>
+                            <th scope="col" class="text-center">🔥 得点</th>
+                            <th scope="col" class="text-center">🎯 A</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in total_goals_ranking %}
+                        <tr>
+                            <td>{% if stat.number %}{{ stat.number }}{% else %}N/A{% endif %}</td>
+                            <td>{{ stat.name }}</td>
+                            <td class="text-center">{{ stat.goals }}</td>
+                            <td class="text-center text-muted">{{ stat.assists }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center p-3">まだ得点の記録がありません。</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card shadow mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">アシストランキング (累計)</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if total_assists_ranking %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">選手名</th>
+                            <th scope="col" class="text-center">🎯 アシスト</th>
+                            <th scope="col" class="text-center">🔥 G</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in total_assists_ranking %}
+                        <tr>
+                            <td>{% if stat.number %}{{ stat.number }}{% else %}N/A{% endif %}</td>
+                            <td>{{ stat.name }}</td>
+                            <td class="text-center">{{ stat.assists }}</td>
+                            <td class="text-center text-muted">{{ stat.goals }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center p-3">まだアシストの記録がありません。</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+        
+        <div class="col-lg-7 col-md-12"> <div class="card shadow mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">全試合合計：得点/失点 時間帯別傾向</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="goalTimeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (function() {
+        
+        // Python (Flask/Jinja) から渡されたJSONデータを取得
+        const totalTimeIntervalData = JSON.parse('{{ total_time_interval_data | tojson | safe }}'); 
+
+        // Chart.js の設定に必要な要素を確実に取得
+        const canvasElement = document.getElementById('goalTimeChart');
+        
+        // 🚨 安全策: データや要素がない場合は処理を終了 🚨
+        if (!canvasElement || !totalTimeIntervalData) {
+            // メッセージを表示する安全策
+            if (canvasElement) {
+                 canvasElement.parentNode.innerHTML = '<p class="text-center p-4 text-muted">データが空か、グラフ要素の準備ができていません。</p>';
+            }
+            return;
+        }
+        
+        // X軸のラベルを固定で定義
+        const labels = [
+            '0~10', '11~20', '21~30', '31~40', '41~50', '51~60', 
+            '61~70', '71~80', '81~90', '前半AT', '後半AT'
+        ];
+
+        const ctx = canvasElement.getContext('2d');
+        
+        // 描画ロジック
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '自チーム累計得点 (OWN)',
+                        data: totalTimeIntervalData.own_goals,
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: '相手チーム累計失点 (OPPONENT)',
+                        data: totalTimeIntervalData.opponent_goals,
+                        backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, 
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 },
+                        title: { display: true, text: '累計ゴール数' }
+                    },
+                    x: {
+                        title: { display: true, text: '時間帯' }
+                    }
+                },
+                plugins: {
+                    legend: { display: true },
+                    tooltip: { mode: 'index', intersect: false }
+                }
+            }
+        });
+    })(); // 🚨 IIFEの閉じと実行 🚨
+</script>
+{% endblock %}

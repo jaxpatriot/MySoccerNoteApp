@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+<style>
+/* --------------------------------------------------
+ * practice_create.html: モバイル表示の調整
+ * -------------------------------------------------- */
+
+@media (max-width: 576px) {
+    /* コンテナの左右のパディングを減らし、画面幅を最大限に利用 */
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    /* フォームボタンを縦に積み重ねることも考慮 (現在は一行なので不要だが、念のため) */
+    .btn.fw-bold, .btn.btn-secondary {
+        width: 100%;
+        margin-bottom: 8px; /* ボタン間にスペースを追加 */
+    }
+}
+</style>
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">📝 練習計画・日誌の作成</h1>
+    <form method="POST">
+        
+        <div class="mb-3">
+            <label for="title" class="form-label">タイトル / テーマ</label>
+            <input type="text" class="form-control" id="title" name="title" required placeholder="例: ボール回しとシュート練習">
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="date" class="form-label">日付</label>
+                <input type="date" class="form-control" id="date" name="date" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="time" class="form-label">時刻</label>
+                <input type="time" class="form-control" id="time" name="time">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="location" class="form-label">場所</label>
+            <input type="text" class="form-control" id="location" name="location" placeholder="例: ○○グラウンド">
+        </div>
+        
+        <div class="mb-3">
+            <label for="menu" class="form-label">練習メニュー (計画)</label>
+            <textarea class="form-control" id="menu" name="menu" rows="7" placeholder="例: 1. ウォーミングアップ (10分)
+2. 3人組のパス練習 (20分)
+3. 5対5のミニゲーム (30分)
+4. クールダウン (10分)"></textarea>
+            <small class="form-text text-muted">実施予定のメニューを詳細に記述してください。</small>
+        </div>
+
+        <div class="mb-3">
+            <label for="notes" class="form-label">練習日誌 (振り返り)</label>
+            <textarea class="form-control" id="notes" name="notes" rows="7" placeholder="例: ミニゲームでは、攻撃時のサイドチェンジがうまく機能していた。一方で守備時の切り替えの遅さが課題。"></textarea>
+            <small class="form-text text-muted">練習後の選手の様子や反省点、次回への課題などを記録してください。</small>
+        </div>
+
+        <button type="submit" class="btn btn-primary fw-bold">練習を保存</button>
+        <a href="{{ url_for('practice_calendar') }}" class="btn btn-secondary">カレンダーに戻る</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        // GETパラメータから日付を取得し、フォームにセット
+        const urlParams = new URLSearchParams(window.location.search);
+        const dateParam = urlParams.get('date');
+        const dateInput = document.getElementById('date');
+
+        if (dateParam) {
+            dateInput.value = dateParam;
+        } else if (!dateInput.value) {
+            // パラメータがない場合、今日付を自動でセット
+            const today = new Date().toISOString().slice(0, 10);
+            dateInput.value = today;
+        }
+    });
+</script>
+{% endblock %}

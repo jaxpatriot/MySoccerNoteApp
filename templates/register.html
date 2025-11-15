@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+<style>
+/* --------------------------------------------------
+ * regisor.html: モバイル表示の調整
+ * -------------------------------------------------- */
+.auth-container {
+    max-width: 400px; /* PCでのフォームの最大幅を制限 */
+    margin: 0 auto; /* 中央寄せ */
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,.05);
+    border-radius: 8px;
+}
+@media (max-width: 576px) {
+    .container.mt-5 {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    .auth-container {
+        max-width: 100%; /* モバイルでは幅いっぱい */
+        box-shadow: none; /* モバイルでは影を消す */
+        padding: 0;
+    }
+}
+</style>
+
+{% block content %}
+<div class="container mt-5">
+    <div class="auth-container">
+        <h2 class="mb-4">📝 ユーザー登録</h2>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('register') }}">
+           <div class="mb-3">
+                <label for="username" class="form-label">ユーザー名</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">パスワード</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-success w-100">登録</button>
+        </form>
+        
+        <p class="mt-3 text-center">アカウントをすでにお持ちですか？ <a href="{{ url_for('login') }}">ログインはこちら</a></p>
+    </div>
+</div>
+{% endblock %}

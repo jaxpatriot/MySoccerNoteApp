@@ -1,0 +1,645 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head %}
+<style>
+    /* ----------------------------------- */
+    /* CSS: スタイル定義 (ベースレイアウトの制約内で調整) */
+    /* ----------------------------------- */
+    
+    /* base.htmlのcol-md-9内に収めるため、最大幅を削除 */
+    #tactic-container {
+        display: flex;
+        gap: 20px;
+        /* 中央寄せや大きなマージンを削除 */
+        margin: 0; 
+        padding: 0;
+        /* 小さい画面で縦に並ぶように調整 */
+        flex-direction: column; 
+    }
+    
+    /* 制御パネルの幅は固定ではなく、flex-direction: column のため幅いっぱいに */
+    #controls {
+        flex: 0 0 auto; /* 固定幅を解除 */
+        padding: 15px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+        margin-bottom: 20px; /* ボードとの間にスペースを確保 */
+    }
+
+    #soccer-board-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #soccer-board {
+        width: 100%;
+        padding-bottom: 66.66%; 
+        position: relative;
+        background-color: #4CAF50; 
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 66.66"><rect width="100" height="66.66" fill="#4CAF50"/><line x1="50" y1="0" x2="50" y2="66.66" stroke="white" stroke-width="0.3"/><circle cx="50" cy="33.33" r="7" stroke="white" fill="none" stroke-width="0.3"/><line x1="0" y1="0" x2="0" y2="66.66" stroke="white" stroke-width="0.3"/><line x1="100" y1="0" x2="100" y2="66.66" stroke="white" stroke-width="0.3"/><line x1="0" y1="0" x2="100" y2="0" stroke="white" stroke-width="0.3"/><line x1="0" y1="66.66" x2="100" y2="66.66" stroke="white" stroke-width="0.3"/><rect x="0" y="24.44" width="16.5" height="17.78" stroke="white" fill="none" stroke-width="0.3"/><rect x="0" y="30.55" width="5.5" height="5.56" stroke="white" fill="none" stroke-width="0.3"/><rect x="83.5" y="24.44" width="16.5" height="17.78" stroke="white" fill="none" stroke-width="0.3"/><rect x="94.5" y="30.55" width="5.5" height="5.56" stroke="white" fill="none" stroke-width="0.3"/><circle cx="11" cy="33.33" r="0.3" fill="white"/><circle cx="89" cy="33.33" r="0.3" fill="white"/></svg>');
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        border: 1px solid #388E3C;
+        border-radius: 5px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* ----------------------------------- */
+    /* 💡 駒のサイズ調整 (要望2) */
+    /* ----------------------------------- */
+    .player-token {
+        position: absolute;
+        width: 35px; 
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        font-size: 7px; 
+        cursor: grab;
+        user-select: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        transition: border-color 0.2s;
+    }
+
+    .player-token.self {
+    background-color: #570207;
+    color: white;
+    border: 2px solid rgb(175, 150, 9); 
+    }
+
+    .player-token.opponent {
+    background-color:aquamarine;
+    border: 2px solid black; 
+    }
+
+    .player-number {
+        font-weight: bold;
+        font-size: 9px; 
+    }
+    
+    .player-name {
+        font-size: 6px; 
+        white-space: nowrap;
+    }
+    
+    /* メンバーリスト内の駒のサイズも調整 */
+    .pool-member .player-token, 
+    .opponent-member-draggable .player-token {
+        position: relative;
+        width: 24px;
+        height: 24px;
+        font-size: 7px; 
+        margin-right: 10px;
+        box-shadow: none;
+    }
+    
+    /* ----------------------------------- */
+    /* モバイル対応 (コントロールパネルとボードを横並びにする) */
+    /* ----------------------------------- */
+    @media (min-width: 992px) { /* lg以上 (col-md-9がある環境) */
+        #tactic-container {
+            flex-direction: row; /* LGサイズ以上では横並びに戻す */
+        }
+        #controls {
+            flex: 0 0 250px; /* コントロールパネルの幅を固定 */
+        }
+    }
+
+    @media (max-width: 767.98px) {
+    /* ボード上の駒のサイズを小さくする */
+    .player-token {
+        width: 25px; 
+        height: 25px;
+        font-size: 4px; 
+    }
+    
+    .player-number {
+        font-size: 6px; 
+    }
+    
+    .player-name {
+        font-size: 4px; 
+    }
+    
+    /* メンバーリスト内の駒もさらに小さく調整 */
+    .pool-member .player-token, 
+    .opponent-member-draggable .player-token {
+        width: 18px;
+        height: 18px;
+        font-size: 5px;
+    }
+}
+    
+    .control-group h3 {
+        margin-top: 0;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 5px;
+        margin-bottom: 10px;
+    }
+    
+    .control-group button {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 8px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    #save-layout { background-color: #4CAF50; color: white; }
+    #load-layout { background-color: #2196F3; color: white; }
+    #delete-layout, #clear-board { background-color: #F44336; color: white; }
+    #load-layout:hover { background-color: #1976D2; }
+    #save-layout:hover { background-color: #388E3C; }
+    #delete-layout:hover, #clear-board:hover { background-color: #D32F2F; }
+    
+    .pool-member, .opponent-member-draggable {
+        display: flex;
+        align-items: center;
+        padding: 5px;
+        margin-bottom: 5px;
+        border: 1px solid #eee;
+        border-radius: 4px;
+        cursor: grab;
+        background-color: white;
+    }
+    
+    #status-message {
+        margin-top: 10px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        min-height: 20px;
+        color: black;
+    }
+    
+    #match-title {
+        padding: 10px 0;
+        font-size: 1.2em;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="page-title"><i class="fas fa-chess-board me-2"></i>戦術ボード</h1>
+
+<div id="tactic-container">
+    <div id="controls">
+        
+        {% if match %}
+            <div id="match-title">
+                {{ match.opponent }}戦: 戦術ボード
+            </div>
+        {% else %}
+            <div id="match-title">
+                テンプレート作成ボード
+            </div>
+        {% endif %}
+        
+        <div class="control-group">
+            <h3>操作</h3>
+            <button id="save-layout">💾 配置を保存</button>
+            <button id="load-layout">📂 配置をロード/選択</button>
+            <button id="delete-layout">🗑️ 配置を削除</button>
+            <button id="clear-board">🧹 ボードをクリア</button>
+        </div>
+        
+        <div class="control-group">
+            <h3>メッセージ</h3>
+            <div id="status-message">準備完了</div>
+        </div>
+
+        <div class="control-group">
+            <h3>自チーム選手 (Drag & Drop)</h3>
+            <div id="self-members-list">
+                </div>
+        </div>
+
+        <div class="control-group">
+            <h3>相手チーム選手 (Drag & Drop)</h3>
+            <div class="opponent-member-draggable" 
+                 data-id="opponent-base" 
+                 data-name="相手選手" 
+                 data-number="" 
+                 data-type="opponent" 
+                 draggable="true">
+                <div class="player-token opponent" style="position: relative; margin-right: 10px; border-radius: 50%;"></div>
+                <span>相手選手</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="soccer-board-area">
+        <div id="soccer-board" ondragover="event.preventDefault()">
+            </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Flaskからmatch_idを取得 (match_idがNoneの場合は0とする)
+    const MATCH_ID = {{ match_id | tojson | safe }}; 
+    const BOARD_EL = document.getElementById('soccer-board');
+    const SELF_MEMBERS_LIST_EL = document.getElementById('self-members-list');
+    const STATUS_MESSAGE_EL = document.getElementById('status-message');
+    const LOAD_ID = {{ load_id | tojson | safe }}; 
+    
+    // プレイヤーデータ (ボード上の全ての駒の状態を保持する配列)
+    let playersOnBoard = [];
+    let nextPlayerId = 1; 
+    let draggedToken = null; 
+    
+    // =======================================================
+    // 1. データ取得・初期化
+    // =======================================================
+
+    async function fetchMembersAndInitialize() {
+        try {
+            // A. メンバーリストを構築 (Flaskから渡されたメンバーリストを使用)
+            {% if members %}
+                const members = JSON.parse('{{ members | tojson | safe }}');
+                members.forEach(member => {
+                    SELF_MEMBERS_LIST_EL.innerHTML += createDraggableMemberHTML(member);
+                });
+            {% endif %}
+            
+            // B. ドラッグイベントリスナーを設定
+            document.querySelectorAll('.pool-member, .opponent-member-draggable').forEach(item => {
+                item.addEventListener('dragstart', handlePoolDragStart);
+            });
+            
+            // C. ボードのイベントリスナーを設定
+            BOARD_EL.addEventListener('drop', handleBoardDrop);
+            BOARD_EL.addEventListener('dragover', handleBoardDragOver);
+            document.getElementById('clear-board').addEventListener('click', clearBoard);
+            
+        } catch (error) {
+            console.error("Initialization Error:", error);
+            setStatusMessage('メンバーリストの読み込みに失敗しました。', 'danger');
+        }
+    }
+    
+    function createDraggableMemberHTML(member) {
+        // Poolからドラッグするために、データをカスタム属性に格納
+        return `
+            <div class="pool-member" 
+                 data-member-id="${member.id}" 
+                 data-name="${member.name}" 
+                 data-number="${member.number || ''}" 
+                 data-type="self" 
+                 draggable="true">
+                <div class="player-token self" style="position: relative; margin-right: 10px;">
+                    <span class="player-number">${member.number || ''}</span>
+                </div>
+                <span>${member.name}</span>
+            </div>
+        `;
+    }
+
+    // =======================================================
+    // 2. ドラッグ＆ドロップ処理
+    // =======================================================
+
+    function handlePoolDragStart(event) {
+        const data = event.target.dataset;
+        event.dataTransfer.setData('text/plain', JSON.stringify({
+            member_id: data['memberId'],
+            name: data.name,
+            number: data.number,
+            type: data.type
+        }));
+        draggedToken = null; 
+    }
+    
+    function handleTokenDragStart(event) {
+        draggedToken = event.currentTarget; 
+        const rect = draggedToken.getBoundingClientRect();
+        const offsetX = event.clientX - rect.left;
+        const offsetY = event.clientY - rect.top;
+        event.dataTransfer.setData('text/offset', JSON.stringify({ offsetX, offsetY }));
+        event.dataTransfer.setDragImage(draggedToken, offsetX, offsetY); 
+        event.dataTransfer.setData('text/token-move', 'true');
+    }
+
+    function handleBoardDragOver(event) {
+        event.preventDefault(); 
+    }
+    
+    function handleBoardDrop(event) {
+        event.preventDefault();
+
+        if (draggedToken && event.dataTransfer.getData('text/token-move') === 'true') {
+            const offsetData = JSON.parse(event.dataTransfer.getData('text/offset'));
+            const rect = BOARD_EL.getBoundingClientRect();
+            
+            const newX = event.clientX - rect.left - offsetData.offsetX + (draggedToken.offsetWidth / 2);
+            const newY = event.clientY - rect.top - offsetData.offsetY + (draggedToken.offsetHeight / 2);
+            
+            const percentX = Math.max(0, Math.min(100, (newX / rect.width) * 100));
+            const percentY = Math.max(0, Math.min(100, (newY / rect.height) * 100));
+
+            updatePlayerPosition(draggedToken.dataset.playerId, percentX, percentY);
+
+            draggedToken = null;
+            setStatusMessage('駒を移動しました。');
+
+        } else {
+            const dataString = event.dataTransfer.getData('text/plain');
+            if (!dataString) return;
+
+            const memberData = JSON.parse(dataString);
+            
+            const rect = BOARD_EL.getBoundingClientRect();
+            const offsetX = event.clientX - rect.left;
+            const offsetY = event.clientY - rect.top;
+
+            const percentX = (offsetX / rect.width) * 100;
+            const percentY = (offsetY / rect.height) * 100;
+            
+            createNewPlayerToken(memberData.member_id, memberData.name, memberData.number, memberData.type, percentX, percentY);
+            setStatusMessage('新しい駒を配置しました。');
+        }
+    }
+    
+    // =======================================================
+    // 3. 駒の描画・更新・削除
+    // =======================================================
+
+    function createNewPlayerToken(memberId, name, number, type, x, y) {
+        const token = document.createElement('div');
+        const playerId = nextPlayerId++;
+        
+        token.className = `player-token ${type}`;
+        token.dataset.playerId = playerId; 
+        token.draggable = true;
+        
+        token.style.left = `${x}%`;
+        token.style.top = `${y}%`;
+        token.style.transform = `translate(-50%, -50%)`; 
+
+        if (type === 'self') {
+            token.innerHTML = `
+                <span class="player-number">${number || ''}</span>
+                <span class="player-name">${name}</span>
+            `;
+        } else {
+            token.innerHTML = '';
+        }
+        
+        token.addEventListener('dragstart', handleTokenDragStart);
+        token.addEventListener('dblclick', (event) => deletePlayerToken(event.currentTarget.dataset.playerId));
+        
+        BOARD_EL.appendChild(token);
+        
+        playersOnBoard.push({
+            player_id: playerId, 
+            member_id: memberId === 'opponent-base' ? null : memberId,
+            name: name,
+            number: number,
+            type: type,
+            x: x, 
+            y: y 
+        });
+    }
+
+    function updatePlayerPosition(playerId, x, y) {
+        const token = document.querySelector(`.player-token[data-player-id="${playerId}"]`);
+        if (token) {
+            token.style.left = `${x}%`;
+            token.style.top = `${y}%`;
+            
+            const playerIndex = playersOnBoard.findIndex(p => p.player_id == playerId);
+            if (playerIndex !== -1) {
+                playersOnBoard[playerIndex].x = x;
+                playersOnBoard[playerIndex].y = y;
+            }
+        }
+    }
+
+    function deletePlayerToken(playerId) {
+        if (!confirm('この駒を削除してもよろしいですか？')) return;
+
+        const token = document.querySelector(`.player-token[data-player-id="${playerId}"]`);
+        if (token) {
+            BOARD_EL.removeChild(token);
+        }
+        playersOnBoard = playersOnBoard.filter(p => p.player_id != playerId);
+        setStatusMessage('駒を削除しました。');
+    }
+
+    function clearBoard() {
+        if (!confirm('ボード上の全ての駒をクリアしてもよろしいですか？')) return;
+        BOARD_EL.innerHTML = '';
+        playersOnBoard = [];
+        nextPlayerId = 1;
+        setStatusMessage('ボードをクリアしました。', 'info');
+    }
+
+    // =======================================================
+    // 4. API通信 (保存・ロード・削除)
+    // =======================================================
+    
+    document.getElementById('save-layout').addEventListener('click', async () => {
+        if (playersOnBoard.length === 0) {
+             setStatusMessage('ボードに駒がありません。', 'danger');
+             return;
+        }
+        const layoutName = prompt("配置名を入力してください (例: 4-4-2 初期配置)");
+        if (!layoutName) return;
+
+        const url = '/api/save_layout';
+        const payload = {
+            layout_name: layoutName,
+            layout_data: playersOnBoard,
+            match_id: MATCH_ID 
+        };
+
+        setStatusMessage('保存中...');
+        
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            
+            if (response.ok) {
+                setStatusMessage(result.message, 'success');
+            } else {
+                setStatusMessage(`保存失敗: ${result.message}`, 'danger');
+            }
+        } catch (error) {
+            console.error('Save Error:', error);
+            setStatusMessage('サーバーとの通信に失敗しました。', 'danger');
+        }
+    });
+    
+    document.getElementById('load-layout').addEventListener('click', async () => {
+        const listUrl = `/api/layout/list?match_id=${MATCH_ID === 'null' ? '' : MATCH_ID}`; 
+        
+        try {
+            const listResponse = await fetch(listUrl);
+            if (!listResponse.ok) throw new Error('配置リストの取得に失敗');
+            
+            const layouts = await listResponse.json();
+            if (layouts.length === 0) {
+                setStatusMessage('ロード可能な配置データはありません。', 'info');
+                return;
+            }
+
+            let promptMessage = "ロードする配置を選択してください:\n";
+            layouts.forEach((l, index) => {
+                const type = l.match_id ? '(試合配置)' : '(テンプレート)'; 
+                promptMessage += `${index + 1}: ${l.layout_name} ${type} (${l.created_at})\n`;
+            });
+            
+            const selection = prompt(promptMessage);
+            if (selection === null) return;
+            
+            const selectedIndex = parseInt(selection) - 1;
+            const selectedLayout = layouts[selectedIndex];
+            
+            if (!selectedLayout) {
+                setStatusMessage('無効な選択です。', 'danger');
+                return;
+            }
+            
+            const loadUrl = `/api/layout/data?layout_id=${selectedLayout.id}`;
+            setStatusMessage(`「${selectedLayout.layout_name}」をロード中...`);
+            
+            const dataResponse = await fetch(loadUrl);
+            if (!dataResponse.ok) throw new Error('配置データの取得に失敗');
+            
+            const loadedPlayers = await dataResponse.json();
+            
+            clearBoard(); 
+            playersOnBoard = [];
+            nextPlayerId = 1;
+            
+            loadedPlayers.forEach(p => {
+                createNewPlayerToken(p.member_id, p.name, p.number, p.type, p.x, p.y);
+            });
+
+            setStatusMessage(`✅ 配置「${selectedLayout.layout_name}」をロードしました。`, 'success');
+            
+        } catch (error) {
+            console.error('Load Error:', error);
+            setStatusMessage(`ロード中にエラーが発生しました。詳細はコンソールを確認してください。`, 'danger');
+        }
+    });
+
+    document.getElementById('delete-layout').addEventListener('click', async () => {
+        const listUrl = `/api/layout/list?match_id=${MATCH_ID === 'null' ? '' : MATCH_ID}`;
+        
+        try {
+            const listResponse = await fetch(listUrl);
+            if (!listResponse.ok) throw new Error('配置リストの取得に失敗');
+            
+            const layouts = await listResponse.json();
+            if (layouts.length === 0) {
+                setStatusMessage('削除する配置データはありません。', 'info');
+                return;
+            }
+
+            let promptMessage = "❌ 削除する配置を選択してください:\n";
+            layouts.forEach((l, index) => {
+                const type = l.match_id ? '(試合配置)' : '(テンプレート)';
+                promptMessage += `${index + 1}: ${l.layout_name} ${type} (${l.created_at})\n`;
+            });
+            
+            const selection = prompt(promptMessage);
+            if (selection === null) return;
+            
+            const selectedIndex = parseInt(selection) - 1;
+            const selectedLayout = layouts[selectedIndex];
+            
+            if (!selectedLayout) {
+                setStatusMessage('無効な選択です。', 'danger');
+                return;
+            }
+            
+            if (!confirm(`配置「${selectedLayout.layout_name}」を完全に削除してもよろしいですか？`)) return;
+
+            let deleteUrl;
+            if (selectedLayout.match_id) {
+                deleteUrl = `/match/${selectedLayout.match_id}/layout/delete/${selectedLayout.id}`;
+            } else {
+                deleteUrl = `/layout/delete/${selectedLayout.id}`;
+            }
+            
+            setStatusMessage(`「${selectedLayout.layout_name}」を削除中...`, 'info');
+            
+            const deleteResponse = await fetch(deleteUrl, { method: 'POST' }); 
+            
+            if (deleteResponse.ok || deleteResponse.status === 302) { 
+                 setStatusMessage(`✅ 配置「${selectedLayout.layout_name}」の削除リクエストを送信しました。`, 'success');
+                 clearBoard();
+            } else {
+                setStatusMessage(`削除失敗 (ステータス: ${deleteResponse.status})`, 'danger');
+            }
+        } catch (error) {
+             console.error('Delete Process Error:', error);
+             setStatusMessage('削除処理中にエラーが発生しました。', 'danger');
+        }
+    });
+
+    // =======================================================
+    // 5. ユーティリティ
+    // =======================================================
+    
+    function setStatusMessage(message, type = 'info') {
+        STATUS_MESSAGE_EL.textContent = message;
+        STATUS_MESSAGE_EL.style.color = type === 'success' ? 'green' : (type === 'danger' ? 'red' : 'black');
+    }
+
+    // =======================================================
+    // 6. 実行
+    // =======================================================
+    
+    async function initialLoad() {
+        await fetchMembersAndInitialize();
+
+        if (LOAD_ID !== null) {
+            const loadUrl = `/api/layout/data?layout_id=${LOAD_ID}`;
+            setStatusMessage(`指定された配置を自動ロード中... (ID: ${LOAD_ID})`);
+            
+            try {
+                const dataResponse = await fetch(loadUrl);
+                if (!dataResponse.ok) throw new Error('配置データの取得に失敗');
+                
+                const loadedPlayers = await dataResponse.json();
+                
+                clearBoard(); 
+                playersOnBoard = [];
+                nextPlayerId = 1;
+
+                loadedPlayers.forEach(p => {
+                    createNewPlayerToken(p.member_id, p.name, p.number, p.type, p.x, p.y);
+                });
+
+                setStatusMessage(`✅ 試合詳細から指定された配置をロードしました。`, 'success');
+                
+            } catch (error) {
+                console.error('Initial Load Error:', error);
+                setStatusMessage(`初期配置の自動ロードに失敗しました。`, 'danger');
+            }
+        }
+    }
+    
+    initialLoad(); 
+</script>
+{% endblock %}

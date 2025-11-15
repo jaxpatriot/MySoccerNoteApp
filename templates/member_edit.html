@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}メンバー編集{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">✏️ メンバー編集: {{ member.name }}</h1>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('member_edit', member_id=member.id) }}">
+                
+                <div class="mb-3">
+                    <label for="name" class="form-label">選手名 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="name" name="name" 
+                           value="{{ member.name }}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="number" class="form-label">背番号</label>
+                    <input type="text" class="form-control" id="number" name="number" 
+                           value="{{ member.number or '' }}">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="position" class="form-label">ポジション</label>
+                    <input type="text" class="form-control" id="position" name="position" 
+                           value="{{ member.position or '' }}">
+                </div>
+                
+                <button type="submit" class="btn btn-primary me-2">更新</button>
+                <a href="{{ url_for('member_list') }}" class="btn btn-secondary">キャンセル</a>
+            </form>
+            
+            <hr class="mt-4">
+            
+            <form method="POST" action="{{ url_for('member_delete', member_id=member.id) }}" 
+                  onsubmit="return confirm('本当にこのメンバー（{{ member.name }}）を削除しますか？\n削除すると、このメンバーに関連する試合の得点・アシスト記録も影響を受ける可能性があります。');">
+                <button type="submit" class="btn btn-outline-danger">メンバーを削除</button>
+            </form>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

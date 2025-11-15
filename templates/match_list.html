@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+/* --------------------------------------------------
+ * match_list.html: モバイル表示の調整
+ * -------------------------------------------------- */
+
+@media (max-width: 576px) {
+    /* コンテナの左右のパディングを減らし、画面幅を最大限に利用 */
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    /* h1のフォントサイズを調整 */
+    h1.mb-4 {
+        font-size: 1.5rem;
+    }
+    
+    /* リストアイテムの調整: モバイルでは要素を縦に積み重ねる */
+    .list-group-item.d-flex {
+        flex-direction: column;
+        align-items: flex-start !important; 
+    }
+
+    /* 詳細ボタンと削除ボタンのグループ */
+    .btn-group-sm {
+        width: 100%; /* ボタンのグループ全体を幅いっぱいに */
+        margin-top: 8px;
+    }
+
+    /* リストアイテム内の詳細ボタンを大きく、幅いっぱいに */
+    .list-group-item .btn-sm {
+        flex-grow: 1; /* グループ内で均等に幅を広げる */
+    }
+
+    /* 試合情報（日付、対戦相手、結果バッジ）のコンテナ */
+    .list-group-item div:first-child {
+        width: 100%; /* 情報エリアも幅いっぱいに広げる */
+    }
+    
+    .list-group-item .badge.ms-3 {
+        margin-left: 0.5rem !important;
+    }
+
+    /* 新しい試合を記録ボタンの幅を調整 */
+    .btn-primary.mb-3 {
+        width: 100%;
+    }
+    
+    /* 検索フォームのボタンのサイズ調整 */
+    .input-group > .btn {
+        flex-grow: 1; 
+    }
+    .input-group > .btn + .btn {
+        margin-left: 5px; 
+    }
+}
+
+/* PC/タブレット表示でのボタン間のスペース調整 */
+.match-actions {
+    display: flex;
+    gap: 5px; /* ボタン間のスペース */
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">📜 試合記録一覧</h1>
+    
+    <a href="{{ url_for('match_info_create') }}" class="btn btn-primary mb-3">＋ 新しい試合を記録</a>
+    
+    {# 検索フォーム #}
+    <div class="row mb-4">
+        <div class="col-12">
+            <form method="GET" action="{{ url_for('match_list') }}" class="input-group">
+                <input type="text" 
+                        name="search" 
+                        class="form-control" 
+                        placeholder="日付(例: 2023-11-01) または対戦相手で検索" 
+                        value="{{ search_query if search_query else '' }}">
+                <button type="submit" class="btn btn-dark">
+                    <i class="fas fa-search"></i> 検索
+                </button>
+                {% if search_query %}
+                <a href="{{ url_for('match_list') }}" class="btn btn-secondary">
+                    <i class="fas fa-redo"></i> リセット
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    
+    {# 試合一覧 #}
+    {% if matches %}
+        <ul class="list-group">
+            {% for match in matches %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ match.date.strftime('%Y/%m/%d') }}</strong> vs {{ match.opponent }}
+                        {% if match.result %}
+                            <span class="ms-3 badge bg-secondary">{{ match.result }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    {# 💡 修正点: 詳細ボタンと削除ボタンをグループ化 #}
+                    <div class="match-actions btn-group-sm">
+                        <a href="{{ url_for('match_detail', match_id=match.id) }}" class="btn btn-sm btn-info">詳細を見る</a>
+                        
+                        {# 💡 修正点: 試合削除ボタンを追加 #}
+                        <form method="POST" action="{{ url_for('delete_match', match_id=match.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('警告: この試合記録を完全に削除しますか？これに紐づくすべての配置、イベントも削除されます。');">
+                                <i class="fas fa-trash"></i> 削除
+                            </button>
+                        </form>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        {# 試合記録がない場合のメッセージ #}
+        <div class="alert alert-warning" role="alert">
+            {% if search_query %}
+                「**{{ search_query }}**」に一致する試合記録は見つかりませんでした。
+            {% else %}
+                まだ試合記録がありません。
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

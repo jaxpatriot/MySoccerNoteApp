@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+<style>
+/* --------------------------------------------------
+ * index.html: モバイル表示の調整
+ * -------------------------------------------------- */
+
+@media (max-width: 576px) {
+    /* コンテナの左右のパディングを減らす */
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    /* タイルのカード内のフォントサイズとアイコンサイズを調整 */
+    .icon-card .fa-3x {
+        font-size: 2.2em; /* アイコンをさらに少し小さく */
+    }
+
+    .icon-card .card-title {
+        font-size: 1.0rem; /* タイトルをさらに小さく */
+        margin-top: 0.3rem !important; /* タイトル上の余白を詰める */
+        margin-bottom: 0.2rem !important; /* タイトル下の余白を詰める */
+    }
+
+    /* 【💡追加: カード本体のパディングを調整して高さを圧縮】 */
+    .icon-card .card-body {
+        padding: 0.75rem; /* 上下のパディングを大幅に減らす */
+    }
+
+    .icon-card .card-text {
+        display: none; /* 説明文は省略して、画面をシンプルに保つ (既存) */
+    }
+}
+</style>
+
+{% block content %}
+<div class="container text-center">
+    <div class="my-5">
+        <img src="https://cdn-icons-png.flaticon.com/512/3716/3716616.png" alt="Soccer Ball" width="60" height="60" class="mb-3">
+        <h1>My Soccer Note App</h1>
+        <p class="lead">ようこそ、**{{ current_user.username }}** さん。どの機能を使いますか？</p>
+    </div>
+
+    <div class="row row-cols-2 row-cols-md-2 row-cols-lg-4 g-4 mb-5"> 
+        
+        <div class="col">
+            <a href="{{ url_for('practice_calendar') }}" class="card icon-card h-100 text-decoration-none text-dark shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-clock fa-3x text-warning"></i> 
+                    <h5 class="card-title mt-2">練習カレンダー</h5>
+                    <p class="card-text small">練習スケジュールをカレンダーで管理し、日誌を記録します。</p>
+                </div>
+            </a>
+        </div>
+        
+        <div class="col">
+            <a href="{{ url_for('match_list') }}" class="card icon-card h-100 text-decoration-none text-dark shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-futbol fa-3x text-success"></i>
+                    <h5 class="card-title mt-2">試合記録</h5>
+                    <p class="card-text small">試合を記録し、得点や失点、ラインナップや戦術を登録します。</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col">
+            <a href="{{ url_for('tactics_board') }}" class="card icon-card h-100 text-decoration-none text-dark shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-chess-board fa-3x text-info"></i> 
+                    <h5 class="card-title mt-2">戦術ボード</h5>
+                    <p class="card-text small">フィールド上で選手の配置や動きを自由にシミュレーション・保存します。</p>
+                </p>
+            </div>
+        </a>
+    </div>
+
+    <div class="col">
+        <a href="{{ url_for('member_list') }}" class="card icon-card h-100 text-decoration-none text-dark shadow-sm">
+            <div class="card-body">
+                <i class="fas fa-clipboard-check fa-3x text-primary"></i>
+                <h5 class="card-title mt-2">メンバー登録</h5>
+                <p class="card-text small">チームメンバーの情報を管理・確認します。</p>
+            </div>
+        </a>
+    </div>
+    
+</div>
+
+<div class="row row-cols-1 justify-content-center mb-5">
+    
+    <div class="col-12 col-md-6 col-lg-4 mb-4">
+        <a href="{{ url_for('absence_summary') }}" class="card icon-card h-100 text-decoration-none text-dark shadow-sm">
+            <div class="card-body">
+                <i class="fas fa-calendar-times fa-3x text-info"></i>
+                <h5 class="card-title mt-2">欠席集計</h5>
+                <p class="card-text small">期間ごとの欠席率や回数を集計し、メンバーの参加状況を確認します。</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-12 col-md-6 col-lg-4">
+        <a href="{{ url_for('analysis_overview') }}" class="card icon-card h-100 text-decoration-none text-dark shadow-sm">
+            <div class="card-body">
+                <i class="fas fa-chart-bar fa-3x text-danger"></i>
+                <h5 class="card-title mt-2">総合分析</h5>
+                <p class="card-text small">全試合の個人成績や時間帯別傾向を総合的に集計・確認します。</p>
+            </div>
+        </a>
+    </div>
+</div>
+
+<a href="{{ url_for('logout') }}" class="btn btn-outline-secondary mt-3">ログアウト</a>
+</div>
+{% endblock %}

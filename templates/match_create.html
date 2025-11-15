@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+<style>
+/* --------------------------------------------------
+ * match_create.html: スタイル
+ * -------------------------------------------------- */
+
+@media (max-width: 576px) {
+    /* モバイルでのコンテナ幅の調整 */
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    /* ボタンの幅を100%にして、押しやすくする */
+    .d-flex.justify-content-between.mt-4 a, 
+    .d-flex.justify-content-between.mt-4 button {
+        width: 100%;
+        margin-bottom: 10px; 
+    }
+    
+    /* D&Dエリアの代わりのリストの高さを調整 */
+    .selection-list-container {
+        min-height: 200px; /* モバイルで高さを抑える */
+        max-height: 300px;
+        margin-bottom: 10px;
+    }
+}
+
+/* --------------------------------------------------
+ * リストエリアのスタイル
+ * -------------------------------------------------- */
+.selection-list-container {
+    min-height: 400px; /* エリアの最低限の高さ */
+    max-height: 500px;
+    overflow-y: auto; 
+    border: 1px solid #ddd;
+    padding: 5px;
+    background-color: #f8f9fa; /* 背景を薄いグレーに */
+    border-radius: .25rem;
+}
+
+.player-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .5rem .75rem;
+    margin-bottom: 2px;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: .25rem;
+}
+
+.player-name {
+    flex-grow: 1; /* 名前部分がスペースを占有 */
+    font-weight: 500;
+}
+
+.btn-group-sm > .btn {
+    padding: .25rem .5rem;
+    font-size: .7rem;
+    line-height: 1.5;
+    border-radius: .2rem;
+    margin-left: 5px;
+}
+</style>
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">⚽ ラインナップ登録: {{ match.opponent }} 戦</h1>
+    <p class="text-muted">各選手のボタンを押して、出場メンバーに登録してください。</p>
+
+    <div class="card shadow-sm p-4">
+        <h3 class="h5 border-bottom pb-2 mb-4">出場メンバーの選択</h3>
+        
+        <form id="lineupForm" method="POST" action="{{ url_for('match_lineup_create', match_id=match.id) }}">
+    
+            <div class="row">
+                
+                <div class="col-md-4 mb-3">
+                    <h4 class="h5 mb-3">メンバープール (未選択)</h4>
+                    <div id="member-pool" class="list-group selection-list-container">
+                        {% for member in members %}
+                        <div class="player-item" data-member-id="{{ member.id }}" data-status="pool">
+                            <span class="player-name">{{ member.number | default('-') }}番 {{ member.name }}</span>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-primary btn-starter" 
+                                        onclick="movePlayer({{ member.id }}, 'starter')">スタメンへ</button>
+                                <button type="button" class="btn btn-info btn-sub" 
+                                        onclick="movePlayer({{ member.id }}, 'sub')">サブへ</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <h4 class="h5 mb-3">スタメン <span class="badge bg-primary" id="starter-count">0/11</span></h4>
+                    <div id="starting-lineup" class="list-group selection-list-container">
+                        </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <h4 class="h5 mb-3">サブ (Substitutes)</h4>
+                    <div id="substitutes" class="list-group selection-list-container">
+                        </div>
+                </div>
+            </div>
+            
+            <input type="hidden" id="starters-input" name="starters_ids">
+            <input type="hidden" id="subs-input" name="subs_ids">
+
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ url_for('match_detail', match_id=match.id) }}" class="btn btn-secondary">ラインナップなしで進む</a>
+                <button type="submit" class="btn btn-primary fw-bold">ラインナップを登録して次へ</button>
+            </div>
+            
+        </form>
+    </div>
+</div>
+
+<script>
+    // --- 状態管理関数 ---
+    function updateLineupState() {
+        const starterContainer = document.getElementById('starting-lineup');
+        const subsContainer = document.getElementById('substitutes');
+
+        // 各リストからmember-idを取得
+        const starters = Array.from(starterContainer.querySelectorAll('.player-item'))
+                               .map(el => el.getAttribute('data-member-id'));
+        const subs = Array.from(subsContainer.querySelectorAll('.player-item'))
+                             .map(el => el.getAttribute('data-member-id'));
+
+        // 隠しフィールドにIDリスト（カンマ区切り）を設定
+        document.getElementById('starters-input').value = starters.join(',');
+        document.getElementById('subs-input').value = subs.join(',');
+        
+        // カウントとスタイルの更新
+        const starterCount = starters.length;
+        const countBadge = document.getElementById('starter-count');
+        countBadge.textContent = `${starterCount}/11`;
+        countBadge.classList.toggle('bg-success', starterCount === 11);
+        countBadge.classList.toggle('bg-primary', starterCount !== 11);
+    }
+    
+    // --- プレイヤー移動関数 ---
+    window.movePlayer = (memberId, targetStatus) => {
+        const memberIdStr = String(memberId);
+        
+        // 1. メンバープールのオリジナル要素を見つける (非表示になっている可能性あり)
+        const originalPoolItem = document.querySelector(`#member-pool .player-item[data-member-id="${memberIdStr}"]`);
+
+        if (!originalPoolItem) return;
+
+        let targetContainer;
+        let newStatusText;
+        let returnButtonText;
+
+        if (targetStatus === 'starter') {
+            targetContainer = document.getElementById('starting-lineup');
+            newStatusText = 'スタメン';
+            returnButtonText = 'プールへ戻す';
+            
+            // スタメン11人制限チェック
+            if (targetContainer.children.length >= 11) {
+                alert("スタメンは最大11人です。");
+                return;
+            }
+        } else if (targetStatus === 'sub') {
+            targetContainer = document.getElementById('substitutes');
+            newStatusText = 'サブ';
+            returnButtonText = 'プールへ戻す';
+        } else {
+            // プールに戻す場合
+            targetContainer = document.getElementById('member-pool');
+            newStatusText = 'プール';
+        }
+
+        // 2. 既存の登録済み要素を削除する (スタメン⇔サブ間の移動に対応)
+        // 現在スタメンまたはサブに登録されている要素を削除
+        const existingStarter = document.querySelector(`#starting-lineup .player-item[data-member-id="${memberIdStr}"]`);
+        const existingSub = document.querySelector(`#substitutes .player-item[data-member-id="${memberIdStr}"]`);
+        
+        if (existingStarter) existingStarter.remove();
+        if (existingSub) existingSub.remove();
+
+        // 3. ターゲットへの移動処理
+        if (targetStatus === 'pool') {
+            // プールに戻す場合: プールリストのオリジナル要素を再表示
+            originalPoolItem.style.display = '';
+            originalPoolItem.querySelector('.btn-group').style.display = 'block'; // ボタンを再表示
+        } else {
+            // スタメンまたはサブへ移動する場合
+            
+            // 複製要素を作成
+            const newElement = document.createElement('div');
+            newElement.className = 'player-item';
+            newElement.setAttribute('data-member-id', memberIdStr);
+            newElement.setAttribute('data-status', targetStatus);
+            newElement.innerHTML = `
+                <span class="player-name">${originalPoolItem.querySelector('.player-name').textContent}</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                        onclick="movePlayer(${memberIdStr}, 'pool')">${returnButtonText}</button>
+            `;
+            
+            targetContainer.appendChild(newElement);
+            
+            // プールリストのオリジナル要素を非表示
+            originalPoolItem.style.display = 'none';
+        }
+
+        // 4. 状態を更新
+        updateLineupState();
+    };
+
+    // ページロード時の初期設定
+    document.addEventListener('DOMContentLoaded', () => {
+        // TODO: 既存のラインアップがある場合、ここに配置ロジックを追加する必要があります。
+        
+        // 初期ロード時に一度呼び出す
+        updateLineupState();
+    });
+</script>
+{% endblock %}
