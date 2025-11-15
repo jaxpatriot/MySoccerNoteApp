@@ -10,18 +10,15 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, curren
 
 app = Flask(__name__)
 database_url = os.environ.get('DATABASE_URL')
-basedir = os.path.abspath(os.path.dirname(__file__))
-if database_url:
-    if database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'soccer_note.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'a_very_secret_key_for_testing_csrf'
-app.config['SESSION_COOKIE_SECURE'] = False
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+if not database_url:
+    raise Exception("DATABASE_URL environment variable not found. Cannot connect to PostgreSQL.")
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+app.config['SQLALCHEMY_POOL_SIZE'] = 10
+app.config['SQLALCHEMY_POOL_TIMEOUT'] = 30
+app.config['SQLALCHEMY_POOL_RECYCLE'] = 299
 db = SQLAlchemy(app) 
 login_manager = LoginManager()
 login_manager.init_app(app) 
