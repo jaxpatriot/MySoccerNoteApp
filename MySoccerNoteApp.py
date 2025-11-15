@@ -1287,16 +1287,7 @@ def delete_layout_template(layout_id):
         else:
             return redirect(url_for('tactics_board'))
 
-# ----------------------------------------------------
-# 最終実行ブロック
-# ----------------------------------------------------
-
-with app.app_context():
-    db.create_all()
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+# ... (他のインポート、app/db定義、モデル定義、ルート定義など) ...
 
 # デプロイ時の初期化専用エンドポイント（注意: 実行後は必ず削除または保護してください）
 @app.route('/initialize-db')
@@ -1311,3 +1302,11 @@ def initialize_database():
         return "Database tables created successfully!", 200
     except Exception as e:
         return f"Database initialization failed: {str(e)}", 500
+
+if __name__ == '__main__':
+    # 💡 修正点: ローカル開発環境でのみdb.create_all()を実行する
+    with app.app_context():
+        db.create_all()
+
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
