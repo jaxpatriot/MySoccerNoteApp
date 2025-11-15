@@ -1,18 +1,28 @@
-app = "my-soccer-note-app-fly" # 💡 Fly.io全体でユニークな名前に変更
-kill_signal = "SIGINT"
-kill_timeout = 5
-processes = []
+# fly.toml app configuration file generated for my-soccer-note-app-fly on 2025-11-16T01:22:46+09:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'my-soccer-note-app-fly'
+primary_region = 'nrt'
+kill_signal = 'SIGINT'
+kill_timeout = '5s'
 
 [build]
-  builder = "heroku/buildpacks:20"
+  builder = builder = "heroku/buildpacks:22"
 
 [env]
-  PORT = "8080"
+  PORT = '8080'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = true
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
-  processes = ["app"]
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
